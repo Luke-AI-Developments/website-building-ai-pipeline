@@ -1,0 +1,58 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EmailSignup from '../components/EmailSignup.astro';
+import AdSlot from '../components/AdSlot.astro';
+import { SITE } from '../config/site.mjs';
+
+const live = (c) => c.filter((e) => !e.data.draft)
+  .sort((a, b) => String(b.data.published).localeCompare(String(a.data.published)));
+
+const guides = live(await getCollection('guides'));
+const reviews = live(await getCollection('reviews'));
+const articles = live(await getCollection('articles'));
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.name,
+  url: SITE.url,
+  description: SITE.tagline,
+};
+---
+<BaseLayout title={null} description={SITE.tagline} jsonLd={jsonLd}>
+  <h1>{SITE.name}</h1>
+  <p class="lead">{SITE.tagline}</p>
+
+  <AdSlot />
+
+  <h2>Buying guides</h2>
+  <ul class="list">
+    {guides.map((e) => (
+      <li><a href={`/guides/${e.slug}/`}>{e.data.title}</a><div class="muted">{e.data.description}</div></li>
+    ))}
+  </ul>
+
+  <h2>Reviews</h2>
+  <ul class="list">
+    {reviews.map((e) => (
+      <li><a href={`/reviews/${e.slug}/`}>{e.data.title}</a><div class="muted">{e.data.description}</div></li>
+    ))}
+  </ul>
+
+  <h2>Guides &amp; FAQ</h2>
+  <ul class="list">
+    {articles.map((e) => (
+      <li><a href={`/articles/${e.slug}/`}>{e.data.title}</a><div class="muted">{e.data.description}</div></li>
+    ))}
+  </ul>
+
+  <EmailSignup />
+
+  <style>
+    .lead { font-size:1.15rem; color:var(--muted); }
+    ul.list { list-style:none; padding:0; }
+    ul.list li { padding:.75rem 0; border-bottom:1px solid var(--line); }
+    ul.list a { font-weight:600; font-size:1.05rem; text-decoration:none; }
+  </style>
+</BaseLayout>

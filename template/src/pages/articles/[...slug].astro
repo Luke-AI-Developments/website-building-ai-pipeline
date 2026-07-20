@@ -1,0 +1,65 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EmailSignup from '../../components/EmailSignup.astro';
+import { SITE } from '../../config/site.mjs';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles.filter((e) => !e.data.draft).map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const d = entry.data;
+
+// If the article carries FAQ entries, emit FAQPage schema (AI engines quote this).
+const faqLd = d.faq && d.faq.length
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: d.faq.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: d.title,
+      description: d.description,
+      author: { '@type': 'Person', name: d.author || SITE.author.name },
+      datePublished: d.published,
+      ...(d.updated ? { dateModified: d.updated } : {}),
+      publisher: { '@type': 'Organization', name: SITE.name },
+    };
+---
+<BaseLayout title={d.title} description={d.description} type="article"
+  published={d.published} updated={d.updated} jsonLd={faqLd}>
+  <article>
+    <h1>{d.title}</h1>
+    <p class="muted">By {d.author || SITE.author.name} · {d.published}{d.updated ? ` · updated ${d.updated}` : ''}</p>
+    <Content />
+
+    {d.faq && d.faq.length > 0 && (
+      <section class="faq">
+        <h2>Frequently asked questions</h2>
+        {d.faq.map((f) => (
+          <div class="faq-item">
+            <h3>{f.q}</h3>
+            <p>{f.a}</p>
+          </div>
+        ))}
+      </section>
+    )}
+  </article>
+  <EmailSignup />
+  <style>
+    .faq-item { border-top:1px solid var(--line); padding:.75rem 0; }
+    .faq-item h3 { margin:.25rem 0; font-size:1.05rem; }
+  </style>
+</BaseLayout>

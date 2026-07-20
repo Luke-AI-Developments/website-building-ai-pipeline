@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site.mjs';
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: `About ${SITE.name}`,
+  publisher: { '@type': 'Organization', name: SITE.name },
+};
+---
+<BaseLayout title="About" description={`About ${SITE.name}`} jsonLd={jsonLd}>
+  <h1>About {SITE.name}</h1>
+  <p>{SITE.author.bio}</p>
+
+  <h2>How we review</h2>
+  <p>
+    We research each product using manufacturer specs, pricing across retailers, and — crucially —
+    what real owners report in communities and verified reviews. Where we haven’t personally tested a
+    product, we say so and lean on that owner evidence rather than pretending otherwise.
+  </p>
+
+  <h2>Who writes this</h2>
+  <p><strong>{SITE.author.name}</strong> — {SITE.author.bio}</p>
+
+  <h2>How we make money</h2>
+  <p>{SITE.affiliate.disclosure} See our <a href="/affiliate-disclosure/">full affiliate disclosure</a>.</p>
+</BaseLayout>

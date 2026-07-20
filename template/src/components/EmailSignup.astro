@@ -1,0 +1,23 @@
+---
+import { SITE } from '../config/site.mjs';
+// A direct audience is the one asset AI/zero-click can't summarise away.
+// Wire the form action to your email provider (Buttondown, ConvertKit, etc.).
+const { heading = 'Get the good finds first', action = '#' } = Astro.props;
+---
+{SITE.emailEnabled && (
+  <section class="email-capture">
+    <h3>{heading}</h3>
+    <p class="muted">No spam. Just the products worth knowing about.</p>
+    <form action={action} method="post">
+      <input type="email" name="email" placeholder="you@email.com" required aria-label="Email address" />
+      <button type="submit">Subscribe</button>
+    </form>
+  </section>
+)}
+<style>
+  .email-capture { border:1px solid var(--line); border-radius:12px; padding:1.25rem; margin:2rem 0; background:#fafafa; }
+  .email-capture h3 { margin:0 0 .25rem; }
+  .email-capture form { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.75rem; }
+  .email-capture input { flex:1 1 200px; padding:.6rem .75rem; border:1px solid var(--line); border-radius:8px; }
+  .email-capture button { padding:.6rem 1.1rem; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+</style>

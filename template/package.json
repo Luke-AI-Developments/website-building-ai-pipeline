@@ -1,0 +1,17 @@
+{
+  "name": "trend-site-template",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Reusable Astro template for fast, SEO-first affiliate content sites. Claude Code fills it per trend.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^4.15.0",
+    "@astrojs/mdx": "^3.1.0",
+    "@astrojs/sitemap": "3.6.0"
+  }
+}

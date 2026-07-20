@@ -1,0 +1,158 @@
+{
+  "name": "Reddit Trend Scraper - v4 (big subs + niche finder)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1e723af4c9e54d3f",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "0c3fe14e0d1f49f2",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// BIG mainstream subs \u2014 money/hobby subs FIRST (round-robin samples in order,\n// and the batch cap is small, so front-load the subs where niches are densest).\nconst subreddits = [\n  \"BuyItForLife\",\n  \"HomeImprovement\",\n  \"Fitness\",\n  \"Cooking\",\n  \"gardening\",\n  \"DIY\",\n  \"Frugal\",\n  \"YouShouldKnow\",\n  \"LifeProTips\",\n  \"AskReddit\"\n];\nreturn subreddits.map(s => ({ json: { subreddit: s } }));\n"
+      },
+      "id": "6d78b904a38042f6",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.reddit.com/r/{{ $json.subreddit }}/hot/.rss?limit=25",
+        "options": {}
+      },
+      "id": "8ce09d602ae84cd5",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// ===================================================================\n// Reddit Trend Scraper (RSS) \u2014 \"Score & gate\" = PRE-FILTER (v4)\n// Mode: Run Once for All Items\n//\n// New strategy: hunt POPULAR posts on BIG mainstream subreddits (not obvious\n// product subs). This node just does the cheap housekeeping \u2014 de-dupe, recency,\n// interleave across subs so we sample the top of each, and cap how many go to\n// the LLM. The Gemini node does the smart \"is there a niche here?\" judgment.\n// ===================================================================\n\nconst MAX_AGE_HOURS = 72;     // popular posts are usually recent; light guard vs stale\nconst MAX_TO_CHECK  = 20;     // how many posts to hand the LLM per run (token control)\nconst MEMORY_CAP    = 1500;   // remember this many recent posts to avoid re-checking\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.seenUrls = staticData.seenUrls || [];\nconst alreadyChecked = new Set(staticData.seenUrls);\nconst seenThisRun = new Set();\n\nconst now = Date.now();\nconst bySub = {};\n\nfor (const item of items) {\n  const e = item.json || {};\n  const title = e.title || '';\n  const link  = e.link || e.guid || '';\n  if (!link) continue;\n  if (alreadyChecked.has(link) || seenThisRun.has(link)) continue;  // de-dupe\n  seenThisRun.add(link);\n\n  const pub  = e.isoDate || e.pubDate || '';\n  const ageH = pub ? (now - new Date(pub).getTime()) / 3600000 : null;\n  if (ageH !== null && ageH > MAX_AGE_HOURS) continue;\n\n  const m   = String(link).match(/reddit\\.com\\/r\\/([^/]+)/i);\n  const sub = m ? m[1] : 'reddit';\n  (bySub[sub] = bySub[sub] || []).push({ sub, title, link, ageH });\n}\n\n// Round-robin across subreddits: take the top post from each, then the 2nd, etc.\n// So we sample the most-popular from every sub instead of 20 from whichever came first.\nconst groups = Object.values(bySub);\nconst picked = [];\nlet depth = 0;\nwhile (picked.length < MAX_TO_CHECK) {\n  let addedThisPass = false;\n  for (const g of groups) {\n    if (g[depth]) {\n      picked.push(g[depth]);\n      addedThisPass = true;\n      if (picked.length >= MAX_TO_CHECK) break;\n    }\n  }\n  if (!addedThisPass) break;\n  depth++;\n}\n\nconst out = picked.map((p) => ({ json: {\n  subreddit: p.sub,\n  title: p.title,\n  url: p.link,\n  ageHours: p.ageH !== null ? Math.round(p.ageH) : null,\n  // Fallback message so Telegram is never \"undefined\" even without the Gemini node.\n  // The Gemini node overwrites this with the niche verdict when it's in the chain.\n  message: `\ud83d\udcc8 POPULAR \u2014 r/${p.sub}\\n${p.title}\\n${p.link}`,\n}}));\n\n// Remember what we're handing to the LLM so we don't re-check (or re-pay for) it.\nfor (const o of out) staticData.seenUrls.push(o.json.url);\nif (staticData.seenUrls.length > MEMORY_CAP) {\n  staticData.seenUrls = staticData.seenUrls.slice(-MEMORY_CAP);\n}\n\nreturn out;\n\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      "id": "33f2ac5ee0974bb3",
+      "name": "Score & gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "d98d2e145884419c",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Score & gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score & gate": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "instanceId": "trend-scraper-v4"
+  }
+}

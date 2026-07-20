@@ -1,0 +1,42 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EmailSignup from '../../components/EmailSignup.astro';
+import { SITE } from '../../config/site.mjs';
+
+export async function getStaticPaths() {
+  const reviews = await getCollection('reviews');
+  return reviews.filter((e) => !e.data.draft).map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const d = entry.data;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Review',
+  itemReviewed: { '@type': 'Product', name: d.productName },
+  ...(d.rating ? { reviewRating: { '@type': 'Rating', ratingValue: d.rating, bestRating: 5 } } : {}),
+  author: { '@type': 'Person', name: d.author || SITE.author.name },
+  datePublished: d.published,
+  ...(d.updated ? { dateModified: d.updated } : {}),
+  publisher: { '@type': 'Organization', name: SITE.name },
+};
+---
+<BaseLayout title={d.title} description={d.description} type="article"
+  published={d.published} updated={d.updated} jsonLd={jsonLd}>
+  <article>
+    <h1>{d.title}</h1>
+    <p class="muted">By {d.author || SITE.author.name} · {d.published}{d.updated ? ` · updated ${d.updated}` : ''}</p>
+    {d.verdict && <p class="verdict"><strong>Verdict:</strong> {d.verdict}</p>}
+    <Content />
+  </article>
+  <EmailSignup />
+  <style>
+    .verdict { background:#f4faf7; border-left:4px solid var(--accent); padding:.75rem 1rem; }
+  </style>
+</BaseLayout>

@@ -1,0 +1,25 @@
+---
+// Use inside MDX content: <AffiliateButton url="..." label="Check price on Amazon" />
+const { url, label = 'Check price' } = Astro.props;
+---
+<a
+  class="aff-btn"
+  href={url}
+  target="_blank"
+  rel="nofollow sponsored noopener"
+>
+  {label} →
+</a>
+<style>
+  .aff-btn {
+    display:inline-block;
+    background: var(--accent);
+    color:#fff;
+    text-decoration:none;
+    font-weight:600;
+    padding:.6rem 1.1rem;
+    border-radius:8px;
+    margin:.4rem 0;
+  }
+  .aff-btn:hover { background: var(--accent-dark); }
+</style>

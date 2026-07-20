@@ -1,0 +1,29 @@
+# dependencies / build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.astro/
+**/.astro/
+
+# vercel
+.vercel/
+**/.vercel/
+
+# secrets / env (never commit)
+.env
+.env.*
+*.key
+**/secrets*
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+~$*
+
+# nested template repo is published separately (Luke-AI-Developments/trend-site-template)
+# keep its source but ignore its git internals if copied in
+template/.git/

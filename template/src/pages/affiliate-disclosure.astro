@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site.mjs';
+---
+<BaseLayout title="Affiliate Disclosure" description="How this site is funded.">
+  <h1>Affiliate disclosure</h1>
+  <p>{SITE.affiliate.disclosure}</p>
+  <p>
+    Some links on {SITE.name} are affiliate links. If you click one and buy, we may earn a small
+    commission — at no additional cost to you. This never changes which products we recommend; our
+    picks are based on research and genuine usefulness, not commission rates.
+  </p>
+  <p>
+    As an Amazon Associate we earn from qualifying purchases. Product prices and availability are
+    accurate as of the date/time shown and are subject to change.
+  </p>
+</BaseLayout>
