@@ -8,7 +8,8 @@
 // the LLM. The Gemini node does the smart "is there a niche here?" judgment.
 // ===================================================================
 
-const MAX_AGE_HOURS = 168;    // allow up to a week old (we now use the /top?t=week feed)
+const MAX_AGE_HOURS = 6;      // paired with the /top?t=hour feed + the 4-hourly Schedule Trigger —
+                               // "top post from the last few hours" (was 36/day, then 168/week)
 const MAX_TO_CHECK  = 16;     // ~top 20 posts handed to the LLM per run
 const MAX_PER_SUB   = 2;      // HARD cap per subreddit — stops one sub (e.g. BuyItForLife) flooding
 const MEMORY_CAP    = 1500;   // remember this many recent posts to avoid re-checking

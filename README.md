@@ -38,8 +38,8 @@ Reddit (big subs, /hot)  →  n8n pre-filter  →  Gemini LLM "is this a monetis
 
 ## Tech
 
-n8n · Google Gemini API (free tier) · Claude Code (headless build agent) · Astro + MDX · Vercel ·
-Telegram Bot API · Reddit RSS
+n8n · Google Gemini API (free tier) · Claude Code (headless build agent + research subagent) ·
+Astro + MDX · Vercel · Unsplash API · Telegram Bot API · Reddit RSS
 
 ## Repo map
 
@@ -47,27 +47,39 @@ Telegram Bot API · Reddit RSS
 |---|---|
 | `roadmap.md`, `decisions-log.md` | Strategy + every decision, with reasoning |
 | `reddit-scraper-brief.md` | The niche-finder's design (gates, scoring, signals) |
-| `scraper/` | n8n workflow (JSON) + Code-node logic + setup + Gemini niche-finder |
+| `scraper/` | n8n workflow (JSON) + Code-node logic + setup + Gemini niche-finder + REST API sync script |
 | `ai-visibility-playbook.md` | Zero-click / GEO strategy + audience profile |
 | `site-content-model.md` | What every generated site contains, and the integrity rules |
 | `template/` | The reusable Astro site template (SEO/GEO-ready) — also its own repo |
-| `pipeline/` | The auto-build agent + Telegram→Claude Code wiring |
-| `sites/` | Example content pack for a specific niche |
+| `pipeline/` | The auto-build agent, research subagent spec, Telegram→Claude Code wiring, visual design spec |
+| `.claude/agents/` | The niche-researcher subagent Claude Code runs before writing any content |
+| `sites/` | Build docs for the first (hand-built) site — each generated site deploys to its own repo |
 | `01 Daily Logs/` | The build journey, day by day (the real, messy process) |
 
 ## Status / honesty
 
-- **Niche-finder:** built and working; the main constraint is keeping it on an always-on host
-  (currently a laptop → moving to a small VPS). Free-tier rate limits require gentle, spaced runs.
-- **Auto-build pipeline:** the Claude Code build agent + Telegram wiring are designed and being
-  proven by hand before full automation.
-- **Deliberately unfinished in public:** this is a live learning project, not a polished product.
+- **Niche-finder:** built and running on a 4-hourly schedule; the main constraint is keeping it on an
+  always-on host (currently a laptop → moving to a small VPS, see `hosting/`). Free-tier rate limits
+  require gentle, spaced runs. Code changes now sync into the live n8n workflow via a REST API script
+  (`scraper/sync-to-n8n.js`) instead of manual copy-paste.
+- **Auto-build pipeline:** live end-to-end. `/build <niche>` on Telegram → n8n → a headless Claude Code
+  agent researches the niche (a dedicated research subagent, sourced not improvised), writes the
+  content, picks a niche-appropriate colour palette + real stock photography, and deploys to its own
+  Vercel project — then texts the link back. Reply with a change, or `/ship` to go to production.
+  Several real sites have been built this way end-to-end (see `sites/` and the daily logs).
+- **Deliberately unfinished in public:** this is a live learning project, not a polished product —
+  content quality gets a human review before any site goes live, and a few real sites are still
+  waiting on an Amazon Associates approval before affiliate links actually earn.
 
 ## What I learned
 
-Working through real 403 / 404 / 429 / 503 / timeout errors across Reddit, Gemini and n8n; why you
-prove a core capability by hand before automating it; LLM-as-a-filter design and cost control on a
-free tier; and headless-agent build pipelines. The `01 Daily Logs/` folder is the unedited trail.
+Working through real 403 / 404 / 429 / 503 / timeout errors across Reddit, Gemini and n8n; a
+draft-vs-published versioning gotcha in n8n's workflow API that silently kept an old, buggy version
+live after a "fix"; why an agent's own runtime check for an env var can lie even when the variable is
+genuinely there (shell-syntax dependent checks vs. reading `process.env` directly); why you prove a
+core capability by hand before automating it; LLM-as-a-filter design and cost control on a free tier;
+and headless-agent build pipelines end to end, including the deploy-target collision a live build
+caught and self-corrected. The `01 Daily Logs/` folder is the unedited trail.
 
 ---
 

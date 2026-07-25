@@ -35,6 +35,30 @@ AI-technician. Full write-up in `README.md`.
 - `01 Daily Logs/` — the build journey.
 
 ## Pending — specs for Claude Code to implement
+- [ ] **Tighten scraper freshness further — "top post from the last few hours".** Follow-on from the
+  t=day fix above; Luke wants it fresher still. I've edited `scraper/scoring-rss.js`:
+  `MAX_AGE_HOURS` 36 → `6` (paired with the Schedule Trigger's existing 4-hourly cadence — see
+  `reddit-scraper.v2-rss.n8n.json`, `Schedule Trigger` node, `hoursInterval: 4`). Still needed: run
+  `N8N_API_KEY=<key> node scraper/sync-to-n8n.js --rss-url "https://www.reddit.com/r/{{ $json.subreddit }}/top/.rss?t=hour&limit=25"`
+  to push both the updated `Score & gate` code and the `RSS Read` URL (`t=hour` instead of `t=day`)
+  into the live workflow. Verify `active` stays `true` after, same as last time.
+  **Heads-up worth flagging to Luke, not silently deciding:** Reddit's `t=hour` bucket is thin for
+  smaller/niche subreddits — top-of-the-last-hour on a quieter sub may return very few or zero posts,
+  so some runs could come back sparse (this is a real trade-off of "last few hours" vs the fuller
+  `t=day` pool, not a bug). If alert volume drops too much after this change, the fix is either
+  reverting to `t=day` or keeping `t=hour` but relaxing `MAX_PER_SUB`/subreddit list — flag it back
+  here rather than picking one unilaterally.
+
+- [x] **Fix stale scraper alerts (posts several days old).** Implemented 2026-07-25. Root cause: the
+  earlier BuyItForLife-diversity fix switched the RSS feed to `/top?t=week` and widened `MAX_AGE_HOURS`
+  to 168 to match — a real tradeoff, not a bug, but it meant alerts surfaced posts that had been at the
+  top of the week for days. Cowork had already edited `scraper/scoring-rss.js` (`MAX_AGE_HOURS` 168 →
+  36); ran `node scraper/sync-to-n8n.js --rss-url ".../top/.rss?t=day&limit=25"` to push both that and
+  the new `RSS Read` URL (`t=day` instead of `t=week`) into the live workflow. Verified directly against
+  the API afterward: `active` stayed `true`, `versionId === activeVersionId`, `RSS Read` url and
+  `MAX_AGE_HOURS = 36` both confirmed live. Watch the next few Telegram alerts to confirm ages read
+  same-day/~1-day in practice.
+
 - [x] **Niche-researcher subagent** — implemented 2026-07-25, tested end-to-end 2026-07-25. Added
   `.claude/agents/niche-researcher.md` (web search + WebFetch + Write/Read, writes `research-brief.md`).
   `build-site-agent.md` and `pipeline/build-site-agent-prompt.txt` updated: step 3 invokes the subagent

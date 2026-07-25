@@ -69,4 +69,7 @@ Goal: real visitors, then real income — growing month over month.
 
 ## Immediate next step
 
-Start Phase 1: define the subreddit list and the scoring method for demand mining.
+Phases 1 and 2 are built and running (see `project-state.md` and `CLAUDE.md` for current status and
+day-to-day detail) — the scraper is live on a schedule, and the Telegram → Claude Code → Vercel
+auto-build pipeline has shipped several real sites end to end. The frontier now is Phase 3: seed real
+traffic from Reddit to the live sites, watch conversion, and get the first repeatable income landing.
