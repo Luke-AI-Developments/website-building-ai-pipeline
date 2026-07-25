@@ -12,6 +12,10 @@ STEPS:
    research (e.g. a more specific, more monetisable sub-niche) — if you do, the folder name should
    reflect the FINAL niche you actually build, not the original request text. Do NOT modify the
    template itself. Create a new Git repo for it.
+   IMPORTANT — the template ships linked to its OWN Vercel project: delete any copied .vercel/
+   folder from the new project immediately (it's a stale link, not yours), and change
+   package.json's "name" field from "trend-site-template" to match your new folder/slug. Skipping
+   this causes Vercel to silently deploy into the shared template project instead of a new one.
 2. Config — set src/config/site.mjs: a clean brand name, tagline, niche, author bio, leave
    amazonTag as the placeholder, emailEnabled: true, adsEnabled: false.
 3. Research — invoke the niche-researcher subagent for NICHE (see
@@ -25,6 +29,20 @@ STEPS:
    - 1 comparison ("X vs Y" style).
    - 1-2 informational/how-to articles, and 1 FAQ article with a faq: list (-> FAQ schema).
    - Keep About + Affiliate Disclosure.
+   VOICE & STYLE (write like a real enthusiast, not a spec sheet):
+   - Opinionated, first-person editorial voice — take a clear stance, name a favourite AND an
+     also-ran, don't hedge every sentence.
+   - Lead with the verdict. Put the recommendation up top, then the reasoning — readers and AI answer
+     engines both want the answer first.
+   - Concrete over generic: use specific detail from research-brief.md (real numbers, materials,
+     quirks owners actually mention), never filler like "high quality" or "great value".
+   - Vary the rhythm — mix short, punchy sentences with longer ones. If it reads like a brochure,
+     rewrite it.
+   - Cut filler openers and closers: no "in today's world", "when it comes to", "in conclusion", and
+     never restate the heading. Every sentence earns its place.
+   - Talk to the reader directly ("you'll want...", "skip this one if..."). Helpful, not salesy.
+   - This is STYLE ONLY and never licenses inventing facts — personality comes from how you frame
+     real, brief-sourced detail, not from making anything up. The integrity rules below always win.
    INTEGRITY (hard rules): never fake hands-on testing ("I tested...") for products not owned —
    write from specs + what real owners report, transparently. AI-drafted but genuinely useful. No
    thin filler. Never invent facts beyond the research brief.
@@ -38,15 +56,20 @@ STEPS:
      theme.secondary / theme.surface to a palette that fits the niche's mood (warm earthy for
      cast-iron cooking, greens for gardening, cool blues/greys for tech, etc). No API key needed —
      always do this.
-   - Real imagery (only if UNSPLASH_ACCESS_KEY is set in the environment): fetch a hero photo and a
-     lead photo per guide/review/article from the Unsplash API
-     (https://api.unsplash.com/search/photos?query=<niche term> with header
-     Authorization: Client-ID $UNSPLASH_ACCESS_KEY), download the files into public/images/ (never
-     hotlink), and set SITE.hero.image plus each content file's image / imageAlt / imageCredit
-     frontmatter (credit format: "Photo by <name> on Unsplash"). NEVER use Amazon/retailer product
-     photos (breaks Associates ToS) — stock/lifestyle imagery only.
-     If the env var isn't set, skip imagery entirely — do not fail or block on it. The template's
-     hero/card gradients and fuller colour theme already make the site look designed without photos.
+   - Real imagery (only if UNSPLASH_ACCESS_KEY is set): CHECK FIRST by running exactly
+     `node -e "console.log(process.env.UNSPLASH_ACCESS_KEY ? 'YES' : 'NO')"` — do not guess or
+     assume based on anything else. If it prints NO, skip imagery entirely and move on (the
+     template's hero/card gradients and fuller colour theme already make the site look designed
+     without photos — this is a normal, expected outcome, not an error).
+     If it prints YES: write and run a small Node script (don't rely on shell env-var expansion
+     syntax like $VAR or %VAR%, which differs by shell — read process.env.UNSPLASH_ACCESS_KEY
+     directly in the script instead) that, for the hero and each guide/review/article: calls
+     `https://api.unsplash.com/search/photos?query=<niche term>&per_page=1` with header
+     `Authorization: Client-ID <the key>`, downloads the first result's regular-size image into
+     public/images/ (never hotlink), and prints the local path + photographer name. Then set
+     SITE.hero.image plus each content file's image / imageAlt / imageCredit frontmatter (credit
+     format: "Photo by <name> on Unsplash"). NEVER use Amazon/retailer product photos (breaks
+     Associates ToS) — stock/lifestyle imagery only.
 6. Build + verify — npm install, npm run build, then confirm every route renders and the FAQ page
    outputs FAQPage JSON-LD.
 7. Publish to GitHub — use `gh repo create` to create a new PRIVATE repo under the

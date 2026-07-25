@@ -8,8 +8,9 @@
 // the LLM. The Gemini node does the smart "is there a niche here?" judgment.
 // ===================================================================
 
-const MAX_AGE_HOURS = 72;     // popular posts are usually recent; light guard vs stale
-const MAX_TO_CHECK  = 8;      // keep small — free-tier rate limits punish big bursts
+const MAX_AGE_HOURS = 168;    // allow up to a week old (we now use the /top?t=week feed)
+const MAX_TO_CHECK  = 16;     // ~top 20 posts handed to the LLM per run
+const MAX_PER_SUB   = 2;      // HARD cap per subreddit — stops one sub (e.g. BuyItForLife) flooding
 const MEMORY_CAP    = 1500;   // remember this many recent posts to avoid re-checking
 
 const staticData = $getWorkflowStaticData('global');
@@ -37,9 +38,10 @@ for (const item of items) {
   (bySub[sub] = bySub[sub] || []).push({ sub, title, link, ageH });
 }
 
-// Round-robin across subreddits: take the top post from each, then the 2nd, etc.
-// So we sample the most-popular from every sub instead of 20 from whichever came first.
-const groups = Object.values(bySub);
+// Cap each subreddit to its top MAX_PER_SUB posts (the RSS /top feed is already
+// performance-ordered, so [0..MAX_PER_SUB] = that sub's best), THEN round-robin
+// across subs — so no single sub can dominate and we get a spread of niches.
+const groups = Object.values(bySub).map((g) => g.slice(0, MAX_PER_SUB));
 const picked = [];
 let depth = 0;
 while (picked.length < MAX_TO_CHECK) {
