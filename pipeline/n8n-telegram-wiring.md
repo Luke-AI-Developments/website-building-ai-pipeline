@@ -3,6 +3,36 @@
 Wrap the build-site agent (`build-site-agent.md`) so you can text a niche and get back a live link.
 **Only wire this after the agent works by hand.**
 
+## Status: built, not yet activated
+
+The workflow is built in n8n — **"Telegram Build/Change Loop"** — and every branch's logic has been
+tested (command construction, URL extraction, the `cmd.exe` piping pattern, `claude -p` reading a
+piped prompt, `npx vercel` auth). It is currently **inactive**. One thing is still unresolved before
+it can go live — see "Blocker: exposing the webhook" below.
+
+- Exported copy: `pipeline/telegram-build-loop.n8n.json` (importable, mirrors what's in n8n).
+- Plain-text prompts it pipes into `claude -p` (avoids shell-quoting the whole prompt inline):
+  `pipeline/build-site-agent-prompt.txt` (build) and `pipeline/build-site-agent-changes-prompt.txt`
+  (changes).
+- Telegram credential reused from the scraper's existing "Telegram account" credential.
+- `NODES_EXCLUDE=[]` must be set when starting n8n — this n8n version (2.x) disables the Execute
+  Command node by default for security; that env var re-enables it. Without it the node won't even
+  appear in the node picker.
+
+### Blocker: exposing the webhook
+
+n8n's Telegram Trigger needs Telegram's servers to reach n8n over a public HTTPS URL. Right now n8n
+only runs on `localhost:5678` — nothing public. n8n's old built-in `--tunnel` flag is gone in this
+version, and no tunnel tool (ngrok, Cloudflare Tunnel, etc.) is installed yet. Exposing a local
+service that can run arbitrary shell commands (via Execute Command) to the internet is a real
+decision, not a default — pick one and set it up deliberately:
+- **ngrok** (or similar) pointed at port 5678 — quick, but the tunnel URL must be kept private and
+  re-registered with Telegram's `setWebhook` if it changes.
+- A **fixed tunnel** (Cloudflare Tunnel with a named tunnel, a small VPS reverse proxy) — more setup,
+  stable URL.
+- Skip the trigger for now and test branch-by-branch manually inside n8n (pin sample input on "Route
+  message" and step through) — proves the logic without exposing anything.
+
 ## The loop
 
 1. **Telegram (you):** send `/build cast iron cookware care` (or reply to a scraper niche alert).

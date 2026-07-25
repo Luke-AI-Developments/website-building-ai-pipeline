@@ -8,6 +8,11 @@ const base = {
   updated: z.string().optional(),
   author: z.string().optional(),
   draft: z.boolean().default(false),
+  // Optional lead/thumbnail image — local path under public/, e.g. "/images/hero.jpg".
+  // Downloaded from free stock (Unsplash/Pexels), never hotlinked, never a retailer product photo.
+  image: z.string().optional(),
+  imageAlt: z.string().optional(),
+  imageCredit: z.string().optional(), // e.g. "Photo by Jane Doe on Unsplash"
 };
 
 // Money page: buying guide ("Best X for Y")

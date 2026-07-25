@@ -43,6 +43,8 @@ const faqLd = d.faq && d.faq.length
   <article>
     <h1>{d.title}</h1>
     <p class="muted">By {d.author || SITE.author.name} · {d.published}{d.updated ? ` · updated ${d.updated}` : ''}</p>
+    {d.image && <img class="lead-image" src={d.image} alt={d.imageAlt || ''} />}
+    {d.imageCredit && <p class="muted" style="margin-top:-1rem;">{d.imageCredit}</p>}
     <Content />
 
     {d.faq && d.faq.length > 0 && (

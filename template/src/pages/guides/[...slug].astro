@@ -34,6 +34,9 @@ const jsonLd = {
     <h1>{d.title}</h1>
     <p class="muted">By {d.author || SITE.author.name} · {d.published}{d.updated ? ` · updated ${d.updated}` : ''}</p>
 
+    {d.image && <img class="lead-image" src={d.image} alt={d.imageAlt || ''} />}
+    {d.imageCredit && <p class="muted" style="margin-top:-1rem;">{d.imageCredit}</p>}
+
     {d.products && d.products.length > 0 && (
       <div class="picks">
         <h2>Top picks at a glance</h2>
@@ -41,7 +44,7 @@ const jsonLd = {
           {d.products.map((p) => (
             <li>
               <strong>{p.name}</strong>{p.blurb ? ` — ${p.blurb}` : ''}
-              <div><AffiliateButton url={p.url} label="Check price" /></div>
+              <div><AffiliateButton url={p.url} product={p.name} label="Check price" /></div>
             </li>
           ))}
         </ul>

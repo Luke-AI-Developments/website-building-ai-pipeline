@@ -1,10 +1,25 @@
 ---
-// Use inside MDX content: <AffiliateButton url="..." label="Check price on Amazon" />
-const { url, label = 'Check price' } = Astro.props;
+// Use inside MDX content: <AffiliateButton product="Exact Product Name" label="Check price on Amazon" />
+// If a real per-product affiliate `url` isn't set yet (or is left as the "AFFILIATE_URL"
+// placeholder), this falls back to a working Amazon search link built from `product` + the site's
+// configured amazonTag — so the button always works, and starts earning the moment amazonTag is set.
+import { SITE } from '../config/site.mjs';
+
+const { url, product, label = 'Check price' } = Astro.props;
+
+function amazonSearchUrl(productName) {
+  const q = encodeURIComponent(productName || SITE.niche || '');
+  const tag = SITE.affiliate.amazonTag;
+  const tagParam = tag && tag !== 'yourtag-21' ? `&tag=${encodeURIComponent(tag)}` : '';
+  return `https://www.amazon.co.uk/s?k=${q}${tagParam}`;
+}
+
+const isPlaceholder = !url || url === 'AFFILIATE_URL';
+const href = isPlaceholder ? amazonSearchUrl(product) : url;
 ---
 <a
   class="aff-btn"
-  href={url}
+  href={href}
   target="_blank"
   rel="nofollow sponsored noopener"
 >

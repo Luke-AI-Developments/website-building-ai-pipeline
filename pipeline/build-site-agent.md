@@ -9,6 +9,11 @@ Run it two ways:
 Prereqs (already done): template on GitHub (`trend-site-template`), `gh` + `vercel` authenticated,
 Vercel connected.
 
+> Note: the bare `vercel` binary is not on PATH on this machine — use `npx --yes vercel` for every
+> Vercel CLI command instead (already authenticated as `luke-ai-developments`). The prompt below and
+> `pipeline/build-site-agent-prompt.txt` (the plain-text version used by the Telegram automation)
+> both account for this.
+
 ---
 
 ## The prompt (paste into Claude Code)
@@ -23,14 +28,18 @@ INPUT:
 
 STEPS:
 1. **New project from the template** — copy `trend-site-template` into a new folder named after the
-   niche (kebab-case, e.g. `cast-iron-cookware`). Do NOT modify the template itself. Create a new
-   Git repo for it.
+   niche (kebab-case, e.g. `cast-iron-cookware`). You may narrow/refine the niche during research
+   (e.g. a more specific, more monetisable sub-niche) — if you do, the folder name should reflect
+   the FINAL niche you actually build, not the original request text. Do NOT modify the template
+   itself. Create a new Git repo for it.
 2. **Config** — set `src/config/site.mjs`: a clean brand `name`, `tagline`, `niche`, `author` bio,
    leave `amazonTag` as the placeholder, `emailEnabled: true`, `adsEnabled: false`.
-3. **Research** — gather real facts for the niche: the main products people buy, price ranges, the
-   recurring questions/pains (search + reddit-style queries). Note 3–6 real products with genuine
-   pros/cons. Do NOT invent products, prices, or specs.
-4. **Generate content** (replace the template's examples) per `../site-content-model.md`:
+3. **Research** — invoke the `niche-researcher` subagent for NICHE (see
+   `../pipeline/niche-researcher-agent.md`). It researches thoroughly via web search and writes
+   `research-brief.md` in this project's folder. Do NOT research inline — wait for the brief.
+4. **Generate content** (replace the template's examples) per `../site-content-model.md`, writing
+   FROM `research-brief.md` (its products list, FAQ questions, comparison angles, and owner-sentiment
+   notes — not fresh inline research):
    - 1 hub buying guide ("Best X for Y") with a `products` frontmatter list.
    - 2 reviews / deep-dives of key products.
    - 1 comparison ("X vs Y" or "HOTAS vs yoke"-style).
@@ -38,12 +47,34 @@ STEPS:
    - Keep About + Affiliate Disclosure.
    INTEGRITY (hard rules): never fake hands-on testing ("I tested…") for products not owned — write
    from specs + what real owners report, transparently. AI-drafted but genuinely useful. No thin
-   filler. Affiliate links stay as `AFFILIATE_URL` placeholders.
-5. **Build + verify** — `npm install`, `npm run build`, then confirm every route renders and the FAQ
+   filler. Never invent facts beyond the brief.
+   AFFILIATE LINKS: every `<AffiliateButton>` (inline in MDX body, and every `products[].url` /
+   `affiliateUrl` in frontmatter) must include a `product="<exact product name>"` prop — leave `url`
+   as `AFFILIATE_URL` (or omit it). The component auto-builds a working Amazon search link from
+   `product` + the site's `amazonTag`, so buttons work immediately (no 404s) and start earning the
+   moment a real tag is set. Never hand-write a real `amazon.co.uk/dp/...` URL — you don't have one.
+5. **Theme + imagery** — see `../pipeline/visual-design-spec.md` for full rules. Two parts, do both:
+   - **Palette (always):** in `src/config/site.mjs`, set `theme.primary` / `theme.primaryDark` /
+     `theme.secondary` / `theme.surface` to a palette that fits the niche's mood (warm earthy for
+     cast-iron cooking, greens for gardening, cool blues/greys for tech, etc). No API key needed —
+     always do this.
+   - **Real imagery (only if `UNSPLASH_ACCESS_KEY` is set in the environment):** fetch a hero photo
+     and a lead photo per guide/review/article from the Unsplash API
+     (`https://api.unsplash.com/search/photos?query=<niche term>` with header
+     `Authorization: Client-ID $UNSPLASH_ACCESS_KEY`), **download the files into `public/images/`**
+     (never hotlink), and set `SITE.hero.image` + each content file's `image` / `imageAlt` /
+     `imageCredit` frontmatter (credit format: "Photo by <name> on Unsplash"). NEVER use Amazon/retailer
+     product photos (breaks Associates ToS) — stock/lifestyle imagery only.
+     If the env var isn't set, skip imagery entirely — do not fail or block on it. The template's
+     hero/card gradients and fuller colour theme already make the site look designed without photos.
+6. **Build + verify** — `npm install`, `npm run build`, then confirm every route renders and the FAQ
    page outputs FAQPage JSON-LD.
-6. **Deploy** — push to a new Vercel project (its own URL). Set `SITE.url` to that URL so
+7. **Deploy** — push to a new Vercel project (its own URL). Set `SITE.url` to that URL so
    canonical/OG/sitemap are correct, and redeploy.
-7. **Output** — print exactly: `LIVE_URL: <the vercel url>` on its own line (so automation can grab it).
+8. **Output** — print exactly these two lines (so automation can grab them):
+   `PROJECT_FOLDER: <the folder name under sites/ you actually used>`
+   `LIVE_URL: <the vercel url>`
+   Print `PROJECT_FOLDER` even if it matches the folder from step 1 exactly.
 
 ## CHANGES mode
 If given `CHANGES: <text>` and `PROJECT: <folder>`: open that project, apply the requested changes,

@@ -28,10 +28,23 @@ export const SITE = {
   // Analytics (paste a script/snippet id when ready)
   analyticsId: '',
 
-  // Brand colours (CSS variables)
+  // Brand colours (CSS variables) — pick a palette that fits the niche's mood
+  // (warm earthy for cast-iron cooking, greens for gardening, cool blues/greys for tech, etc).
   theme: {
-    accent: '#1d9e75',
-    accentDark: '#0f6e56',
+    primary: '#1d9e75',      // main brand colour — links, buttons, headings accents
+    primaryDark: '#0f6e56',  // hover/active state for primary
+    secondary: '#e8f5f0',    // complementary tone — tags, highlights, hero backdrop
+    surface: '#f7f9f8',      // card/section background (slightly off-white, not stark)
+  },
+
+  // Hero banner on the homepage (and reused as a fallback lead-image backdrop)
+  hero: {
+    headline: '',            // defaults to SITE.name if empty
+    subhead: '',             // defaults to SITE.tagline if empty
+    ctaLabel: 'See the top picks',
+    ctaHref: '/guides/',
+    image: '',               // e.g. '/images/hero.jpg' — local file under public/. Optional:
+                              // falls back to a primary/secondary gradient if not set.
   },
 
   // Top nav (label + href)

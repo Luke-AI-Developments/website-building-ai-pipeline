@@ -1,0 +1,742 @@
+{
+  "name": "Telegram Build/Change Loop",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "tg-trigger-1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = items[0].json;\nconst msg = item.message || {};\nconst text = (msg.text || '').trim();\nconst chatId = msg.chat && msg.chat.id;\n\nlet type = 'unknown';\nlet niche = '';\nlet changesText = '';\n\nif (/^\\/build\\b/i.test(text)) {\n  type = 'build';\n  niche = text.replace(/^\\/build\\s*/i, '').trim();\n} else if (/^\\/ship\\b/i.test(text)) {\n  type = 'ship';\n} else if (text && !text.startsWith('/')) {\n  type = 'change';\n  changesText = text;\n}\n\nreturn [{ json: { type, niche, changesText, chatId, rawText: text } }];"
+      },
+      "id": "route-message-1",
+      "name": "Route message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-is-build",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "build",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-is-build",
+      "name": "Is /build?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-is-change",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "change",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-is-change",
+      "name": "Is change reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -940,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-is-ship",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "ship",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-is-ship",
+      "name": "Is /ship?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Commands:\n/build <niche> — build a new site\nreply with plain text — request a change to the current preview\n/ship — deploy the current preview to production",
+        "additionalFields": {}
+      },
+      "id": "tg-help",
+      "name": "Reply: help",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        780
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const niche = $json.niche;\nfunction sanitizeForCmd(s) {\n  return String(s || '').replace(/[&|<>^\"%\\r\\n]/g, ' ').trim();\n}\nif (!niche) {\n  return [{ json: { ...$json, error: true, errorMessage: 'Send /build <niche>, e.g. /build cast iron cookware care' } }];\n}\nconst safeNiche = sanitizeForCmd(niche);\nconst folder = safeNiche.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');\nconst projectDir = 'C:\\\\Users\\\\luket\\\\Claude\\\\Projects\\\\Website passive income';\nconst command = `cd /d \"${projectDir}\" & (type \"pipeline\\\\build-site-agent-prompt.txt\" & echo NICHE: ${safeNiche}) | claude -p --dangerously-skip-permissions`;\nreturn [{ json: { ...$json, error: false, command, folder, safeNiche } }];"
+      },
+      "id": "build-make-command",
+      "name": "Build: make command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -940,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-build-valid",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-build-valid",
+      "name": "Build: valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.errorMessage }}",
+        "additionalFields": {}
+      },
+      "id": "tg-build-error",
+      "name": "Build: error reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        20
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}"
+      },
+      "id": "exec-build",
+      "name": "Build: run",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -500,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const out = $json.stdout || '';\nconst err = $json.stderr || '';\nconst upstream = $('Build: make command').item.json;\nconst chatId = upstream.chatId;\nconst folderMatch = out.match(/PROJECT_FOLDER:\\s*(\\S+)/);\nconst folder = folderMatch ? folderMatch[1] : upstream.folder;\nconst m = out.match(/LIVE_URL:\\s*(\\S+)/);\nconst url = m ? m[1] : null;\nconst staticData = $getWorkflowStaticData('global');\nif (url) {\n  staticData.currentProject = folder;\n  staticData.currentUrl = url;\n}\nconst message = url\n  ? `\\u2705 Preview ready: ${url}\\n\\nReply with a change, or send /ship to go live.`\n  : `\\u26a0\\ufe0f Build finished but no LIVE_URL found. Exit code: ${$json.exitCode}\\n\\nLast bit of output:\\n${(out || err).slice(-800)}`;\nreturn [{ json: { chatId, message } }];"
+      },
+      "id": "build-extract",
+      "name": "Build: extract + store",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "tg-build-reply",
+      "name": "Build: reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -60,
+        140
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst project = staticData.currentProject;\nfunction sanitizeForCmd(s) {\n  return String(s || '').replace(/[&|<>^\"%\\r\\n]/g, ' ').trim();\n}\nif (!project) {\n  return [{ json: { ...$json, error: true, errorMessage: 'No active project yet \\u2014 send /build <niche> first.' } }];\n}\nconst safeText = sanitizeForCmd($json.changesText);\nconst projectDir = 'C:\\\\Users\\\\luket\\\\Claude\\\\Projects\\\\Website passive income';\nconst command = `cd /d \"${projectDir}\" & (type \"pipeline\\\\build-site-agent-changes-prompt.txt\" & echo CHANGES: ${safeText} PROJECT: sites\\\\${project}) | claude -p --dangerously-skip-permissions`;\nreturn [{ json: { ...$json, error: false, command, folder: project } }];"
+      },
+      "id": "change-make-command",
+      "name": "Change: make command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-change-valid",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-change-valid",
+      "name": "Change: valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.errorMessage }}",
+        "additionalFields": {}
+      },
+      "id": "tg-change-error",
+      "name": "Change: error reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -280,
+        580
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}"
+      },
+      "id": "exec-change",
+      "name": "Change: run",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const out = $json.stdout || '';\nconst err = $json.stderr || '';\nconst chatId = $('Change: make command').item.json.chatId;\nconst m = out.match(/LIVE_URL:\\s*(\\S+)/);\nconst url = m ? m[1] : null;\nconst staticData = $getWorkflowStaticData('global');\nif (url) staticData.currentUrl = url;\nconst message = url\n  ? `\\u2705 Updated: ${url}\\n\\nReply with another change, or /ship to go live.`\n  : `\\u26a0\\ufe0f Change finished but no LIVE_URL found. Exit code: ${$json.exitCode}\\n\\nLast bit of output:\\n${(out || err).slice(-800)}`;\nreturn [{ json: { chatId, message } }];"
+      },
+      "id": "change-extract",
+      "name": "Change: extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "tg-change-reply",
+      "name": "Change: reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        460
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst project = staticData.currentProject;\nif (!project) {\n  return [{ json: { ...$json, error: true, errorMessage: 'No active project yet \\u2014 send /build <niche> first.' } }];\n}\nconst projectDir = `C:\\\\Users\\\\luket\\\\Claude\\\\Projects\\\\Website passive income\\\\sites\\\\${project}`;\nconst command = `cd /d \"${projectDir}\" & npx --yes vercel --prod --yes`;\nreturn [{ json: { ...$json, error: false, command, folder: project } }];"
+      },
+      "id": "ship-make-command",
+      "name": "Ship: make command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c-ship-valid",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-ship-valid",
+      "name": "Ship: valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.errorMessage }}",
+        "additionalFields": {}
+      },
+      "id": "tg-ship-error",
+      "name": "Ship: error reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -60,
+        740
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}"
+      },
+      "id": "exec-ship",
+      "name": "Ship: run",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const out = $json.stdout || '';\nconst chatId = $('Ship: make command').item.json.chatId;\nconst urls = out.match(/https?:\\/\\/\\S+/g) || [];\nconst clean = urls.map(u => u.replace(/[\\]),.]+$/, ''));\nconst candidates = clean.filter(u => !u.includes('vercel.com/'));\nconst urlLine = candidates.length ? candidates[candidates.length - 1] : (clean.length ? clean[clean.length - 1] : null);\nconst message = urlLine\n  ? `\\ud83d\\ude80 Live in production: ${urlLine}`\n  : `\\u26a0\\ufe0f Ship finished (exit code ${$json.exitCode}) but couldn't find a URL in the output:\\n${out.slice(-800)}`;\nreturn [{ json: { chatId, message } }];"
+      },
+      "id": "ship-extract",
+      "name": "Ship: extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "tg-ship-reply",
+      "name": "Ship: reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        380,
+        620
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Us5KYJbzXRdDwORH",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route message": {
+      "main": [
+        [
+          {
+            "node": "Is /build?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is /build?": {
+      "main": [
+        [
+          {
+            "node": "Build: make command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is change reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is change reply?": {
+      "main": [
+        [
+          {
+            "node": "Change: make command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is /ship?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is /ship?": {
+      "main": [
+        [
+          {
+            "node": "Ship: make command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply: help",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build: make command": {
+      "main": [
+        [
+          {
+            "node": "Build: valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build: valid?": {
+      "main": [
+        [
+          {
+            "node": "Build: run",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build: error reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build: run": {
+      "main": [
+        [
+          {
+            "node": "Build: extract + store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build: extract + store": {
+      "main": [
+        [
+          {
+            "node": "Build: reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change: make command": {
+      "main": [
+        [
+          {
+            "node": "Change: valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change: valid?": {
+      "main": [
+        [
+          {
+            "node": "Change: run",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Change: error reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change: run": {
+      "main": [
+        [
+          {
+            "node": "Change: extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change: extract": {
+      "main": [
+        [
+          {
+            "node": "Change: reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ship: make command": {
+      "main": [
+        [
+          {
+            "node": "Ship: valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ship: valid?": {
+      "main": [
+        [
+          {
+            "node": "Ship: run",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ship: error reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ship: run": {
+      "main": [
+        [
+          {
+            "node": "Ship: extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ship: extract": {
+      "main": [
+        [
+          {
+            "node": "Ship: reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "instanceId": "telegram-build-loop-v1"
+  }
+}

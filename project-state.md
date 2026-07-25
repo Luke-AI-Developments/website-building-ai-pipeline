@@ -27,11 +27,31 @@ This file is the quick-context handoff between sessions. Update it at the end of
 - `site-content-model.md` — what each site actually contains (money/traffic/trust pages); wired into the template.
 - `template/` — Astro site template. ✅ Built, tested, on GitHub (`Luke-AI-Developments/trend-site-template`, private), and LIVE on Vercel: https://template-virid-beta.vercel.app (auto-deploys on push to master). Home/detail/sitemap verified 200. SITE.url being corrected off example.com. Content-model structure, GEO, affiliate/ad/email components, config-driven. See `template/README.md`.
 - `project-state.md` — this file.
+- `CLAUDE.md` — shared context/conventions bridge (Cowork ↔ Claude Code); Claude Code auto-loads it.
+- `pipeline/niche-researcher-agent.md` — spec for a research subagent to lift content quality. **Pending Claude Code implementation** (listed in CLAUDE.md → Pending).
+- `hosting/oracle-n8n-setup.md` — always-on host guide. Oracle console setup PAUSED (needs human for free-Shape + SSH-key steps; nothing created, no charges).
 
-## FOCUS (2026-07-20): AUTO-BUILD PIPELINE + GITHUB PUBLISH
-Scraper parked (couldn't keep laptop on; needs a VPS). Pivoted to: (1) the Telegram→Claude Code auto-build pipeline, and (2) publishing the whole project to GitHub as a public AI-technician portfolio.
-Built the design: `pipeline/build-site-agent.md` (the core Claude Code agent: niche → populated site → deploy → prints LIVE_URL; + CHANGES mode) and `pipeline/n8n-telegram-wiring.md` (Telegram Trigger → Execute Command `claude -p` → capture URL → reply; change loop; `/ship`).
-NEXT: (a) Luke tests `build-site-agent.md` BY HAND in Claude Code with one niche (prove the core before Telegram wiring). (b) Then wire Telegram. (c) GitHub publish prep (task pending): README/case-study, structure, .gitignore, secret scrub (files already use placeholders — verify no keys/tokens/chat-ids before pushing public).
+## FOCUS (2026-07-23): TELEGRAM PIPELINE BUILT, NEEDS WEBHOOK EXPOSURE DECISION
+Both build steps from the 07-20 focus are now done:
+(a) **`build-site-agent.md` proven by hand** — built site #1 for real: flight-sim-xbox, headless
+`claude -p ... --dangerously-skip-permissions`, private GitHub repo, live on Vercel
+(https://flight-sim-xbox.vercel.app), spot-checked in browser (pages, affiliate buttons, FAQ schema
+all good). Found + documented that bare `vercel` isn't on PATH here — use `npx --yes vercel`
+everywhere (already fixed in `build-site-agent.md` and the new prompt files below).
+(b) **Telegram build/change/ship loop wired in n8n** — workflow "Telegram Build/Change Loop"
+(24 nodes: routes `/build <niche>` / a plain-text reply (= change request) / `/ship` into three
+branches, each running headless Claude or `npx vercel --prod` and reporting back to Telegram).
+Exported to `pipeline/telegram-build-loop.n8n.json`. Every branch's logic tested (command strings,
+regex URL extraction, the `cmd.exe` grouped-pipe pattern feeding `claude -p` via stdin — confirmed
+end-to-end with a real call). Telegram credential reused from the scraper. Currently **inactive**.
+Also found n8n 2.x disables the Execute Command node by default — needs `NODES_EXCLUDE=[]` set when
+starting n8n, or the node doesn't even show up in the picker.
+**Blocker before this can go live:** the Telegram Trigger needs a public HTTPS URL (Telegram calls
+n8n's webhook) and n8n only runs on localhost right now — n8n's old `--tunnel` flag is gone, no
+ngrok/tunnel installed. Needs a deliberate choice (ngrok, a fixed tunnel, or manual in-n8n testing
+without exposing anything) — see `pipeline/n8n-telegram-wiring.md` "Blocker: exposing the webhook".
+NEXT: (a) Luke decides the tunnel approach and we activate the workflow. (b) Real end-to-end Telegram
+test. (c) GitHub publish prep (still pending): README/case-study, structure, .gitignore, secret scrub.
 
 ## STATUS (2026-07-17 late): ROOT CAUSE = 429 rate limit (over-testing)
 Debug finally showed the truth: every Gemini call was **429 rate-limited** — from us hammering the free API with dozens of manual test runs all evening (and retrying 429s made it worse). The filter was fine; it just never got to run. Fixes: batch → 8, throttle → 6s, and retry now EXCLUDES 429 (only 503/500). Likely also hit the daily free quota tonight → may need to wait for reset (Google free tier resets ~daily).

@@ -27,3 +27,7 @@ Thumbs.db
 # nested template repo is published separately (Luke-AI-Developments/trend-site-template)
 # keep its source but ignore its git internals if copied in
 template/.git/
+
+# generated sites — each one is its own separate repo (Luke-AI-Developments/<niche-slug>),
+# not part of the portfolio repo
+sites/*/

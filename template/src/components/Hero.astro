@@ -1,0 +1,34 @@
+---
+// Rounded hero banner at the top of the homepage. Falls back to a primary/secondary gradient
+// backdrop when no SITE.hero.image is set, so the site still looks intentional before any real
+// imagery exists.
+import { SITE } from '../config/site.mjs';
+
+const headline = SITE.hero?.headline || SITE.name;
+const subhead = SITE.hero?.subhead || SITE.tagline;
+const ctaLabel = SITE.hero?.ctaLabel || 'See the top picks';
+const ctaHref = SITE.hero?.ctaHref || '/guides/';
+const image = SITE.hero?.image || '';
+---
+<section class="hero" style={image ? `--hero-image:url(${image})` : undefined}>
+  <h1>{headline}</h1>
+  <p class="hero-subhead">{subhead}</p>
+  <a class="hero-cta" href={ctaHref}>{ctaLabel} →</a>
+</section>
+<style>
+  .hero {
+    background: var(--hero-image, none) center/cover no-repeat,
+      linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+    margin: 0 0 2.5rem;
+    padding: 3rem 1.5rem;
+    border-radius: 16px;
+  }
+  .hero h1 { color:#fff; margin-bottom:.6rem; }
+  .hero-subhead { font-size:1.1rem; opacity:.95; margin-bottom:1.25rem; max-width:520px; }
+  .hero-cta {
+    display:inline-block; background:#fff; color:var(--primary-dark); font-weight:600;
+    text-decoration:none; padding:.7rem 1.3rem; border-radius:8px;
+  }
+  .hero-cta:hover { opacity:.9; }
+</style>

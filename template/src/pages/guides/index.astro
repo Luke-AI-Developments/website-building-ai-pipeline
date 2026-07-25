@@ -6,10 +6,19 @@ const items = (await getCollection('guides')).filter((e) => !e.data.draft)
 ---
 <BaseLayout title="Buying Guides" description="Our buying guides.">
   <h1>Buying guides</h1>
-  <ul class="list">
+  <ul class="card-grid">
     {items.map((e) => (
-      <li><a href={`/guides/${e.slug}/`}>{e.data.title}</a><div class="muted">{e.data.description}</div></li>
+      <li class="card">
+        <a class="card-link" href={`/guides/${e.slug}/`}>
+          {e.data.image
+            ? <img class="card-thumb" src={e.data.image} alt="" loading="lazy" />
+            : <div class="card-thumb-placeholder" />}
+          <div class="card-body">
+            <span class="card-title">{e.data.title}</span>
+            <span class="card-desc">{e.data.description}</span>
+          </div>
+        </a>
+      </li>
     ))}
   </ul>
-  <style>ul.list{list-style:none;padding:0}ul.list li{padding:.75rem 0;border-bottom:1px solid var(--line)}ul.list a{font-weight:600;text-decoration:none}</style>
 </BaseLayout>
