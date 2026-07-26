@@ -25,8 +25,8 @@ export const SITE = {
   adsEnabled: false,                // flip on once ad network is approved
   emailEnabled: true,
 
-  // Analytics (paste a script/snippet id when ready)
-  analyticsId: '',
+  // Analytics: Vercel Web Analytics, wired into BaseLayout.astro via @vercel/analytics/astro.
+  // Nothing to configure here — it activates automatically once deployed on Vercel.
 
   // Brand colours (CSS variables) — pick a palette that fits the niche's mood
   // (warm earthy for cast-iron cooking, greens for gardening, cool blues/greys for tech, etc).

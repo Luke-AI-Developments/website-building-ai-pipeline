@@ -15,12 +15,33 @@ AI-technician. Full write-up in `README.md`.
 3. **Build-site agent** — `pipeline/build-site-agent.md`: niche → researched content → build → deploy to Vercel → prints `LIVE_URL:`. Proven (built `flight-sim-xbox.vercel.app`).
 4. **Telegram auto-build pipeline** — `pipeline/n8n-telegram-wiring.md` + `pipeline/telegram-build-loop.n8n.json`: `/build <niche>` → n8n Execute Command → headless `claude -p` → deploy → reply. Live via ngrok while the laptop's up.
 
+**Generated sites do NOT get their own GitHub repo** (decided 2026-07-25 — the `Luke-AI-Developments`
+org was filling up with one-off niche repos). Each site is a local Git repo only (history/rollback),
+deployed straight to Vercel via CLI from the folder. `pipeline/build-site-agent-prompt.txt` and
+`build-site-agent.md` step 1 updated accordingly.
+
 ## Conventions & gotchas (important — learned the hard way)
 - **Vercel:** the bare `vercel` binary isn't on PATH — always use `npx --yes vercel` (authed as `luke-ai-developments`).
 - **n8n Execute Command node:** disabled by default in n8n 2.x — start n8n with `NODES_EXCLUDE=[]` or the node won't appear.
 - **Gemini key:** every fresh paste of `monetisable-check-gemini.js` resets the key to the `YOUR_GEMINI_KEY` placeholder — re-insert the real key. Once working, edit in place, don't re-paste.
 - **Gemini rate limits (free tier):** keep batches small + throttled; don't retry 429s (makes it worse); retry only 503/500. Model: `gemini-flash-latest`.
 - **ngrok tunnel:** free URL rotates on restart; processes are session-bound (die on reboot). Permanent fix = the Oracle VM (`hosting/oracle-n8n-setup.md`).
+- **Amazon Associates tag: LIVE — `ironseam-21`** (approved 2026-07-25, applied via
+  `amazon-associates-application.md`, listed against `ironseam.vercel.app`). Set
+  `AMAZON_ASSOCIATES_TAG=ironseam-21` in the environment before running builds (same
+  export-before-start pattern as `NODES_EXCLUDE` / `WEBHOOK_URL` / `UNSPLASH_ACCESS_KEY`) and every
+  build auto-inserts it into `amazonTag` instead of the placeholder — see `build-site-agent.md` /
+  `build-site-agent-prompt.txt` step 2. Never commit the tag (not secret-sensitive like a password,
+  but keep the pattern consistent with the other keys anyway).
+  **Account is provisional, not fully approved yet:** Amazon's confirmation page states the
+  Associates team reviews compliance once the account generates **three qualifying sales** — until
+  then it can still be closed if that doesn't happen (window per Amazon's Operating Agreement).
+  This makes driving real traffic to Ironseam the immediate priority, not a later nice-to-have.
+  **Not yet retrofitted to already-live sites** — go into each of the 5 other live sites'
+  `src/config/site.mjs`, set `amazonTag: "ironseam-21"` (same account/tag works across all your own
+  sites), `npm run build`, redeploy.
+  **Adding future sites to this account:** once a new site is live, add its URL under this same
+  Associates account (Associates Central → "Add Websites/Apps") — do not create a new application.
 - **Unsplash key (imagery):** builds only fetch real hero/lead photos if `UNSPLASH_ACCESS_KEY` is set in the environment n8n was started in (same pattern as `NODES_EXCLUDE`/`WEBHOOK_URL` — export it before `n8n start`). Without it, sites still look designed (hero/card gradients + fuller colour theme), just no photos. Never commit the key.
 - **Content integrity (non-negotiable):** never fake hands-on testing; write from specs + real owner reports, transparently; only real, sourced facts; prices are "approx / check current". See `site-content-model.md`.
 - **Secrets:** never commit keys/tokens/chat-IDs. Files use placeholders; `.gitignore` covers env/node_modules.
@@ -35,6 +56,89 @@ AI-technician. Full write-up in `README.md`.
 - `01 Daily Logs/` — the build journey.
 
 ## Pending — specs for Claude Code to implement
+- [x] **`/ship` reports the wrong URL — fix the Telegram wiring, not the site.** Implemented and
+  verified live 2026-07-26. `Ship: make command` now reads `staticData.currentUrl` (the known-clean
+  alias saved from the original `/build`, e.g. `https://ironseam.vercel.app`) and passes it through;
+  `Ship: extract` reports that directly instead of parsing `vercel --prod`'s stdout for a URL at all
+  — that stdout has the per-deployment hash+team URL, which is what leaked to Telegram before.
+  Tested locally with the exact stdout pattern from the Thornquill incident (an `Inspect:` vercel.com
+  line + a hash-suffixed `Production:` line) — now correctly reports the clean alias regardless.
+  Pushed to n8n via the save → publish flow (not `sync-to-n8n.js`, which only targets the scraper
+  workflow) and confirmed `activeVersionId` matches the fixed version. Updated
+  `n8n-telegram-wiring.md` step 7 and its stale "not yet activated" status header (the pipeline has
+  been live and shipping real sites for a while — that doc hadn't caught up).
+- [x] **Check brand name availability before committing (found via the "FinBlade" build).**
+  Implemented 2026-07-25. Added an "Availability check" block to step 7 (Deploy) in both
+  `build-site-agent.md` and `pipeline/build-site-agent-prompt.txt`: after the first deploy, compare
+  the resulting URL against the clean `<brand-slug>.vercel.app` requested — Vercel doesn't error on
+  a name collision, it silently falls back to a random-suffixed URL instead. A suffix now means
+  "treat as taken": rename in `site.mjs`, delete the `.vercel/` folder, redeploy under a new brand
+  name, rather than shipping a hash URL silently.
+  **Renamed the live site**: FinBlade → **Thornquill** (`finblade.vercel.app` was confirmed taken by
+  an unrelated AI-automation SaaS). Checked "Thornquill" against existing brands/products via web
+  search first — clean, no collision. Updated `sites/fish-shaped-pocket-knives/src/config/site.mjs`
+  (name + url + author bio's brand mention), deleted the stale `.vercel/` link (was tied to the old
+  `finblade` Vercel project), rebuilt, and deployed to a brand-new Vercel project named `thornquill`.
+  It aliased clean to **`https://thornquill.vercel.app`** with no suffix — verified with `curl`
+  (200, and page content shows "Thornquill" with zero remaining "Finblade" mentions anywhere in the
+  project). Committed the rebrand in the site's own local git repo.
+  Domain suggestions for Luke to check/register: `thornquill.com`, `getthornquill.com`,
+  `thornquill.co.uk` — none currently resolve to a live site (quick `curl` check), so likely
+  unregistered, but Luke should confirm at a registrar before buying.
+
+- [x] **Wire up real analytics — nothing is measuring traffic yet.** Implemented and retrofitted
+  2026-07-26. Added `@vercel/analytics`, wired `<Analytics />` into `template/src/layouts/BaseLayout.astro`
+  (verified in the build output — `<vercel-analytics>` renders on every page) and removed the dead
+  `analyticsId` config field it was meant to replace (never actually read anywhere).
+  **Retrofitted to all 8 live sites** — `cast-iron-carbon-steel-care`, `durable-travel-luggage`,
+  `ergonomic-office-furniture`, `flight-sim-xbox`, `manual-reel-mowers`, `ironseam`
+  (=`durable-work-pants`), `affordable-heavyweight-tshirts`, and `thornquill`
+  (=`fish-shaped-pocket-knives`) — by patching each site's own copy of `BaseLayout.astro` (same
+  two-line change, batch-applied since every copy shares the same anchor points regardless of whether
+  it had the old bare layout or the newer redesigned one), then `npm install @vercel/analytics`,
+  `npm run build`, `npx vercel --prod --yes` per site. All succeeded; spot-checked several live URLs
+  afterward for the `vercel-analytics` tag and for genuine on-topic content (see the mistake below —
+  content-matching every retrofit target turned out to matter).
+  **A real mistake happened and was caught + fixed during this retrofit, worth recording:** a ninth
+  local folder, `sites/sewing-crafting-gear/`, exists but was never actually built — it's still the raw
+  template copy (config still says `"Trend Site Template"` / niche `"gadgets"` / `url: example.com`,
+  zero git commits, no `research-brief.md`) and isn't one of the 8 real sites above. It had no
+  `.vercel` link, so — working through the retrofit mechanically — I linked it to `finblade`, the one
+  Vercel project name I couldn't otherwise account for, and deployed. `finblade` turned out to be the
+  **unrelated pre-existing SaaS product** that an earlier session already found and renamed
+  Thornquill away from (see the brand-collision item above) — I hadn't read that item yet when I made
+  the link. That deploy briefly overwrote its real "FinBlade AI" production content with the broken
+  template placeholder. **Caught immediately** by spot-checking deployed content against what each
+  folder should contain — `vercel ls finblade` showed three older deployments, confirmed one had the
+  real content, `vercel promote`d it straight back to production, and verified `finblade.vercel.app`
+  serves the real content again. Removed `sewing-crafting-gear/.vercel` so it can't happen again.
+  `sewing-crafting-gear` itself is inert local scratch — not linked to anything, not live anywhere.
+  **Still to do:** log weekly numbers somewhere (`metrics-log.md` doesn't exist yet — create it once
+  there's a first week of real numbers to log, not before).
+
+- [x] **Brandable naming + real domains (future builds only — decided 2026-07-25).** Luke doesn't
+  want sites named/URLed off the literal niche keyword slug (looked spammy/AI-generated, e.g.
+  `cast-iron-carbon-steel-care.vercel.app`), and wants his own identity kept out of both site content
+  and domain registration (so links are shareable on Reddit without reading as self-promotion).
+  I've updated `pipeline/build-site-agent.md` and `pipeline/build-site-agent-prompt.txt`:
+  - Step 2 now requires a brandable, made-up-sounding `name` (e.g. "RuggedWear") instead of a
+    keyword-stuffed niche phrase, plus an invented author persona (never Luke's real name).
+  - Step 7 (Deploy) now names the Vercel project after the BRAND name, not the raw niche slug, so
+    even the `*.vercel.app` URL looks clean.
+  - New step 8: suggest 3 real candidate domains matching the brand (no purchase/registration —
+    that's Luke's step, needs payment info which must never be entered by the agent).
+  - Output now includes a third line, `DOMAIN_SUGGESTIONS:`, alongside `PROJECT_FOLDER:`/`LIVE_URL:`.
+  **Scope: future builds only** — the 5 sites already live before this change
+  (cast-iron-carbon-steel-care, durable-travel-luggage, ergonomic-office-furniture, flight-sim-xbox,
+  manual-reel-mowers) are NOT being retrofitted or renamed; Luke explicitly chose not to spend on
+  domains for unproven niches.
+  **Tested 2026-07-25 on the `durable-work-pants` build** (niche: affordable durable clothing →
+  narrowed to men's work pants to avoid overlapping the existing t-shirt site): brand name "Ironseam"
+  (not a niche-keyword slug, no personal identifiers), Vercel project deployed as `ironseam.vercel.app`
+  (not `durable-work-pants.vercel.app`), 3 domain suggestions generated and checked
+  (ironseam.com / getironseam.com / ironseam.co.uk — none currently resolve). Naming + domain-suggestion
+  steps work end to end as specified.
+
 - [x] **Tighten scraper freshness further — "top post from the last few hours".** Implemented
   2026-07-26. Flagged the `t=hour` sparse-results trade-off to Luke first (per the note below, kept for
   the record) — he chose to proceed. `scraper/scoring-rss.js` already had `MAX_AGE_HOURS` 36 → 6 from

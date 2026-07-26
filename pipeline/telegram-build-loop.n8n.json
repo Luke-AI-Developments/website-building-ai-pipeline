@@ -387,7 +387,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst project = staticData.currentProject;\nif (!project) {\n  return [{ json: { ...$json, error: true, errorMessage: 'No active project yet \\u2014 send /build <niche> first.' } }];\n}\nconst projectDir = `C:\\\\Users\\\\luket\\\\Claude\\\\Projects\\\\Website passive income\\\\sites\\\\${project}`;\nconst command = `cd /d \"${projectDir}\" & npx --yes vercel --prod --yes`;\nreturn [{ json: { ...$json, error: false, command, folder: project } }];"
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst project = staticData.currentProject;\nif (!project) {\n  return [{ json: { ...$json, error: true, errorMessage: 'No active project yet \\u2014 send /build <niche> first.' } }];\n}\nconst projectDir = `C:\\\\Users\\\\luket\\\\Claude\\\\Projects\\\\Website passive income\\\\sites\\\\${project}`;\nconst command = `cd /d \"${projectDir}\" & npx --yes vercel --prod --yes`;\nconst currentUrl = staticData.currentUrl;\nreturn [{ json: { ...$json, error: false, command, folder: project, currentUrl } }];"
       },
       "id": "ship-make-command",
       "name": "Ship: make command",
@@ -467,7 +467,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const out = $json.stdout || '';\nconst chatId = $('Ship: make command').item.json.chatId;\nconst urls = out.match(/https?:\\/\\/\\S+/g) || [];\nconst clean = urls.map(u => u.replace(/[\\]),.]+$/, ''));\nconst candidates = clean.filter(u => !u.includes('vercel.com/'));\nconst urlLine = candidates.length ? candidates[candidates.length - 1] : (clean.length ? clean[clean.length - 1] : null);\nconst message = urlLine\n  ? `\\ud83d\\ude80 Live in production: ${urlLine}`\n  : `\\u26a0\\ufe0f Ship finished (exit code ${$json.exitCode}) but couldn't find a URL in the output:\\n${out.slice(-800)}`;\nreturn [{ json: { chatId, message } }];"
+        "jsCode": "const out = $json.stdout || '';\nconst upstream = $('Ship: make command').item.json;\nconst chatId = upstream.chatId;\nconst knownUrl = upstream.currentUrl;\nconst message = ($json.exitCode === 0 && knownUrl)\n  ? `\\ud83d\\ude80 Live in production: ${knownUrl}`\n  : `\\u26a0\\ufe0f Ship finished (exit code ${$json.exitCode}) but couldn't confirm the URL. Last bit of output:\\n${out.slice(-800)}`;\nreturn [{ json: { chatId, message } }];"
       },
       "id": "ship-extract",
       "name": "Ship: extract",

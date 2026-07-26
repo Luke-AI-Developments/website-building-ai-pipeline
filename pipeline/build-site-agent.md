@@ -31,14 +31,30 @@ STEPS:
    niche (kebab-case, e.g. `cast-iron-cookware`). You may narrow/refine the niche during research
    (e.g. a more specific, more monetisable sub-niche) — if you do, the folder name should reflect
    the FINAL niche you actually build, not the original request text. Do NOT modify the template
-   itself. Create a new Git repo for it.
+   itself. Create a new LOCAL Git repo for it (git init + first commit) for version history only —
+   do NOT publish/push it to GitHub. Each site deploys straight to Vercel from the local folder; we
+   deliberately don't create a GitHub repo per site (keeps the Luke-AI-Developments org from filling
+   up with one-off niche repos).
    IMPORTANT — the template ships linked to its OWN Vercel project: delete any copied `.vercel/`
    folder from the new project immediately (it's a stale link, not yours), and change
    `package.json`'s `"name"` field from `"trend-site-template"` to match your new folder/slug.
    Skipping this causes Vercel to silently deploy into the shared template project instead of a
    new one.
-2. **Config** — set `src/config/site.mjs`: a clean brand `name`, `tagline`, `niche`, `author` bio,
-   leave `amazonTag` as the placeholder, `emailEnabled: true`, `adsEnabled: false`.
+2. **Config** — set `src/config/site.mjs`:
+   - `name`: a short, brandable, made-up-sounding brand name (1–2 words, reads like a real consumer
+     brand — e.g. "RuggedWear", "HardyShirts", "AnvilKitchen") that a stranger could believe is a
+     real independent site. NEVER a literal keyword-stuffed niche phrase (avoid "Cast Iron Carbon
+     Steel Care Guide") — those read as AI-generated and spammy. NEVER any personal name or anything
+     that could identify Luke — needs to be shareable on Reddit without reading as self-promotion.
+   - `author`: an invented persona name + bio (plausible, per `site-content-model.md`'s E-E-A-T
+     guidance) — not a real person, never Luke's own name.
+   - `tagline`, `niche` as before. `emailEnabled: true`, `adsEnabled: false`.
+   - `amazonTag`: CHECK FIRST by running exactly
+     `node -e "console.log(process.env.AMAZON_ASSOCIATES_TAG ? 'YES' : 'NO')"` (same pattern as the
+     `UNSPLASH_ACCESS_KEY` check below — don't guess, don't use shell `$VAR`/`%VAR%` expansion). If
+     it prints `YES`, set `amazonTag` to the real value of `process.env.AMAZON_ASSOCIATES_TAG` (read
+     it in a small Node script, not shell expansion). If it prints `NO`, leave `amazonTag` as the
+     placeholder — links still work (Amazon search links, no 404s), they just don't earn yet.
 3. **Research** — invoke the `niche-researcher` subagent for NICHE (see
    `../pipeline/niche-researcher-agent.md`). It researches thoroughly via web search and writes
    `research-brief.md` in this project's folder. Do NOT research inline — wait for the brief.
@@ -93,11 +109,27 @@ STEPS:
      (breaks Associates ToS) — stock/lifestyle imagery only.
 6. **Build + verify** — `npm install`, `npm run build`, then confirm every route renders and the FAQ
    page outputs FAQPage JSON-LD.
-7. **Deploy** — push to a new Vercel project (its own URL). Set `SITE.url` to that URL so
-   canonical/OG/sitemap are correct, and redeploy.
-8. **Output** — print exactly these two lines (so automation can grab them):
+7. **Deploy** — push to a new Vercel project (its own URL). Name the Vercel project after the BRAND
+   name from step 2 (kebab-case), not the raw niche slug — so even the temporary `*.vercel.app` URL
+   looks clean and brand-like (`rugged-wear.vercel.app`, not `cast-iron-carbon-steel-care.vercel.app`).
+   **Availability check** (before treating the deploy as done): compare the resulting URL against
+   the clean `<brand-slug>.vercel.app` you asked for. Vercel does not error when a project
+   name/domain collides with something else already on Vercel — it silently falls back to a
+   random-suffixed URL instead (e.g. `finblade-iota.vercel.app`, a different hash on every
+   subsequent deploy). A suffix means the name is taken and should be treated as unavailable: pick a
+   different brand name (back to step 2), rename in `site.mjs`, delete the `.vercel/` folder this
+   attempt created, and redeploy under the new name. Don't ship a hash/suffixed URL silently as if
+   it were the clean brand URL — resolve it by renaming, or if you must proceed, flag the collision
+   explicitly in your output. Once the deploy resolves to a clean `<brand-slug>.vercel.app`, set
+   `SITE.url` to that URL so canonical/OG/sitemap are correct, and redeploy.
+8. **Suggest a real domain** — do not attempt to buy or register anything yourself (never enter
+   payment details — that's Luke's step). Propose 3 candidate domains matching the brand (mix of
+   `.com` / `.co.uk`). Luke will check availability and register at a low-cost registrar (Cloudflare
+   Registrar or Namecheap) himself.
+9. **Output** — print exactly these three lines (so automation can grab them):
    `PROJECT_FOLDER: <the folder name under sites/ you actually used>`
    `LIVE_URL: <the vercel url>`
+   `DOMAIN_SUGGESTIONS: <comma-separated list of the 3 candidate domains from step 8>`
    Print `PROJECT_FOLDER` even if it matches the folder from step 1 exactly.
 
 ## CHANGES mode

@@ -1,5 +1,6 @@
 ---
 import { SITE } from '../config/site.mjs';
+import Analytics from '@vercel/analytics/astro';
 
 const {
   title,
@@ -84,6 +85,8 @@ const rootVars = `:root{`
     <main class="wrap">
       <slot />
     </main>
+
+    <Analytics />
 
     <footer class="site">
       <div class="wrap muted">

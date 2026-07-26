@@ -3,12 +3,11 @@
 Wrap the build-site agent (`build-site-agent.md`) so you can text a niche and get back a live link.
 **Only wire this after the agent works by hand.**
 
-## Status: built, not yet activated
+## Status: live
 
-The workflow is built in n8n — **"Telegram Build/Change Loop"** — and every branch's logic has been
-tested (command construction, URL extraction, the `cmd.exe` piping pattern, `claude -p` reading a
-piped prompt, `npx vercel` auth). It is currently **inactive**. One thing is still unresolved before
-it can go live — see "Blocker: exposing the webhook" below.
+The workflow is built, published, and active in n8n — **"Telegram Build/Change Loop"**. It's exposed
+via an ngrok tunnel while the laptop's up (see the gotcha in `CLAUDE.md`) and has shipped multiple
+real sites end to end via `/build`, replies, and `/ship`.
 
 - Exported copy: `pipeline/telegram-build-loop.n8n.json` (importable, mirrors what's in n8n).
 - Plain-text prompts it pipes into `claude -p` (avoids shell-quoting the whole prompt inline):
@@ -19,19 +18,11 @@ it can go live — see "Blocker: exposing the webhook" below.
   Command node by default for security; that env var re-enables it. Without it the node won't even
   appear in the node picker.
 
-### Blocker: exposing the webhook
+### Exposing the webhook — resolved with ngrok, still session-bound
 
-n8n's Telegram Trigger needs Telegram's servers to reach n8n over a public HTTPS URL. Right now n8n
-only runs on `localhost:5678` — nothing public. n8n's old built-in `--tunnel` flag is gone in this
-version, and no tunnel tool (ngrok, Cloudflare Tunnel, etc.) is installed yet. Exposing a local
-service that can run arbitrary shell commands (via Execute Command) to the internet is a real
-decision, not a default — pick one and set it up deliberately:
-- **ngrok** (or similar) pointed at port 5678 — quick, but the tunnel URL must be kept private and
-  re-registered with Telegram's `setWebhook` if it changes.
-- A **fixed tunnel** (Cloudflare Tunnel with a named tunnel, a small VPS reverse proxy) — more setup,
-  stable URL.
-- Skip the trigger for now and test branch-by-branch manually inside n8n (pin sample input on "Route
-  message" and step through) — proves the logic without exposing anything.
+Using ngrok pointed at port 5678. Works, but the free-tier URL rotates whenever ngrok or n8n
+restarts, and both are session-bound (die on reboot) — see the ngrok gotcha in `CLAUDE.md`. The
+permanent fix is the Oracle/VPS host in `hosting/`, not yet done.
 
 ## The loop
 
@@ -46,7 +37,11 @@ decision, not a default — pick one and set it up deliberately:
 5. **n8n — Telegram node:** sends you "✅ Preview ready: <url>".
 6. **Change loop:** you reply "make the header shorter" → Telegram Trigger → Execute Command with
    `CHANGES: {{ $json.text }} PROJECT: <folder>` → new `LIVE_URL` back to Telegram.
-7. **Go live:** reply `/ship` → an Execute Command that runs `vercel --prod` in that project.
+7. **Go live:** reply `/ship` → an Execute Command that runs `vercel --prod` in that project. The
+   Telegram reply reports the **known clean alias** (`https://<brand-slug>.vercel.app`, stored from
+   the original `/build`), not whatever `vercel --prod` prints to stdout — that command's own
+   confirmation line is a per-deployment hash+team URL, not the stable alias, and relaying it
+   verbatim shipped a broken-looking link on the first live `/ship` (caught and fixed 2026-07-26).
 
 ## Prereqs
 - n8n and Claude Code on the **same machine** (so Execute Command can call `claude`).
