@@ -56,6 +56,12 @@ Astro + MDX · Vercel · Unsplash API · Telegram Bot API · Reddit RSS
 | `sites/` | Build docs for the first (hand-built) site — each generated site deploys to its own repo |
 | `01 Daily Logs/` | The build journey, day by day (the real, messy process) |
 
+## See it live
+
+**[ironseam.vercel.app](https://ironseam.vercel.app)** — one of 8 real sites the pipeline has built and
+deployed end to end, monetising through a live, approved Amazon Associates account
+(`ironseam-21`). Real Vercel Web Analytics is wired in on every site.
+
 ## Status / honesty
 
 - **Niche-finder:** built and running on a 4-hourly schedule; the main constraint is keeping it on an
@@ -63,23 +69,31 @@ Astro + MDX · Vercel · Unsplash API · Telegram Bot API · Reddit RSS
   require gentle, spaced runs. Code changes now sync into the live n8n workflow via a REST API script
   (`scraper/sync-to-n8n.js`) instead of manual copy-paste.
 - **Auto-build pipeline:** live end-to-end. `/build <niche>` on Telegram → n8n → a headless Claude Code
-  agent researches the niche (a dedicated research subagent, sourced not improvised), writes the
-  content, picks a niche-appropriate colour palette + real stock photography, and deploys to its own
-  Vercel project — then texts the link back. Reply with a change, or `/ship` to go to production.
-  Several real sites have been built this way end-to-end (see `sites/` and the daily logs).
+  agent researches the niche (a dedicated research subagent, sourced not improvised), invents a
+  brandable name and persona, picks a niche-appropriate colour palette + real stock photography, and
+  deploys to its own Vercel project — then texts the link back. Reply with a change, or `/ship` to go
+  to production. **8 real sites** have been built this way end-to-end (see `sites/` and the daily logs).
+- **Monetisation:** real Amazon Associates account, approved and live (`ironseam-21`) — affiliate
+  buttons resolve to working search links from day one, and earn the moment a real tag is set. Traffic
+  is the current bottleneck, not the pipeline.
 - **Deliberately unfinished in public:** this is a live learning project, not a polished product —
-  content quality gets a human review before any site goes live, and a few real sites are still
-  waiting on an Amazon Associates approval before affiliate links actually earn.
+  content quality gets a human review before any site goes live, and some fixes (a visual redesign,
+  working affiliate links) landed after the first few sites shipped, so not every live site has every
+  improvement yet. That gap is tracked, not hidden.
 
 ## What I learned
 
 Working through real 403 / 404 / 429 / 503 / timeout errors across Reddit, Gemini and n8n; a
 draft-vs-published versioning gotcha in n8n's workflow API that silently kept an old, buggy version
 live after a "fix"; why an agent's own runtime check for an env var can lie even when the variable is
-genuinely there (shell-syntax dependent checks vs. reading `process.env` directly); why you prove a
-core capability by hand before automating it; LLM-as-a-filter design and cost control on a free tier;
-and headless-agent build pipelines end to end, including the deploy-target collision a live build
-caught and self-corrected. The `01 Daily Logs/` folder is the unedited trail.
+genuinely there (shell-syntax dependent checks vs. reading `process.env` directly); why a CLI's own
+stdout is the wrong thing to relay verbatim (a per-deployment URL leaked to Telegram instead of the
+stable site alias); why you prove a core capability by hand before automating it; LLM-as-a-filter
+design and cost control on a free tier; and headless-agent build pipelines end to end, including a
+deploy-target collision a live build caught and self-corrected, and a retrofit-across-many-sites job
+where content-checking every target before trusting a name match caught a real mistake (a broken local
+folder linked to someone else's unrelated live project) within minutes instead of leaving it live.
+The `01 Daily Logs/` folder is the unedited trail.
 
 ---
 

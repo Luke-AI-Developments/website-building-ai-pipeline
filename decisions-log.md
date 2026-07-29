@@ -5,6 +5,17 @@ Newest entries at the top.
 
 ---
 
+## 2026-07-25 onward — decisions now logged in `CLAUDE.md`
+
+From here, day-to-day technical and product decisions (build-agent changes, scraper tuning, brand
+naming, monetisation setup, bug fixes with their reasoning) are logged directly in `CLAUDE.md`'s
+"Pending" section as they're implemented, rather than duplicated in both places. That's the
+canonical current trail — including the strategic calls made along the way: sites don't get their
+own GitHub repo (the org was filling up with one-off niche repos), generated brands stay
+identity-free and made-up-sounding rather than niche-keyword slugs, and Amazon Associates was
+applied for once one site had genuine content live (`ironseam-21`, approved). This file keeps the
+early foundational decisions below.
+
 ## 2026-07-14 — Session 4 (cont.): Big subs + niche finder (v4)
 
 Bigger reframe (Luke's call): stop mining obvious product subs (r/gadgets = everything's a product,

@@ -7,8 +7,13 @@ This file is the quick-context handoff between sessions. Update it at the end of
 
 ## Snapshot
 - **Goal:** maximise sustained monthly income from an owned niche website. No fixed target/deadline — build a real asset and grow it.
-- **Current phase:** Phase 1 — Demand mining & niche validation (not started).
-- **Niche:** not chosen yet.
+- **Current phase:** Phase 3 — Traffic & monetisation. Phases 1 (scraper) and 2 (auto-build pipeline)
+  are built and running, not just designed — see below.
+- **Niche approach:** no longer "pick one" — the auto-build pipeline now ships a new branded site per
+  approved Telegram alert. **8 real sites live** (e.g. `ironseam.vercel.app`), each its own brand/persona.
+- **Monetisation:** Amazon Associates approved and live (`ironseam-21`) — affiliate buttons work and
+  earn from day one on new builds. Real Vercel Web Analytics wired in on every site.
+- **Current bottleneck:** traffic, not the pipeline — see `roadmap.md` "Immediate next step".
 
 ## Locked decisions (see decisions-log.md for full reasoning)
 - Monetisation: **Affiliate + content** primary; lead-gen / paid-tool held as a hedge.
@@ -28,8 +33,28 @@ This file is the quick-context handoff between sessions. Update it at the end of
 - `template/` — Astro site template. ✅ Built, tested, on GitHub (`Luke-AI-Developments/trend-site-template`, private), and LIVE on Vercel: https://template-virid-beta.vercel.app (auto-deploys on push to master). Home/detail/sitemap verified 200. SITE.url being corrected off example.com. Content-model structure, GEO, affiliate/ad/email components, config-driven. See `template/README.md`.
 - `project-state.md` — this file.
 - `CLAUDE.md` — shared context/conventions bridge (Cowork ↔ Claude Code); Claude Code auto-loads it.
-- `pipeline/niche-researcher-agent.md` — spec for a research subagent to lift content quality. **Pending Claude Code implementation** (listed in CLAUDE.md → Pending).
+- `pipeline/niche-researcher-agent.md` — spec for the research subagent that lifts content quality. **Implemented** as `.claude/agents/niche-researcher.md`, tested end-to-end (see CLAUDE.md).
 - `hosting/oracle-n8n-setup.md` — always-on host guide. Oracle console setup PAUSED (needs human for free-Shape + SSH-key steps; nothing created, no charges).
+
+## FOCUS (2026-07-29): PIPELINE LIVE, 8 SITES SHIPPED — TRAFFIC IS THE FRONTIER
+Everything below this entry describes the pipeline being built and proven; it's now live and running
+day to day. Since: webhook exposed via ngrok (session-bound, permanent fix is the VPS in `hosting/`);
+niche-researcher subagent implemented and tested; affiliate-link 404 fixed (working Amazon search
+links); template got a real visual redesign (hero, cards, colour theming, imagery via Unsplash);
+sites got brandable names + invented personas instead of niche-slug URLs (decided 2026-07-25 — no
+personal identifiers, no keyword-stuffed domains); Amazon Associates applied for and approved
+(`ironseam-21`, live); `scraper/sync-to-n8n.js` built so scraper code changes push to the live n8n
+workflow via its REST API instead of copy-paste; Vercel Web Analytics wired into every site; a
+`/ship` bug (reported a per-deployment hash URL instead of the site's stable alias) found and fixed.
+One real mistake happened and was caught fast during a retrofit-across-8-sites job — a broken local
+folder got linked to someone else's unrelated Vercel project and briefly overwrote it, rolled back
+within minutes via `vercel promote` once caught by content-checking the deploy target. Full detail on
+all of this, day by day, is in `CLAUDE.md`'s Pending section (all ticked off) — that's the current
+source of truth, not this file, going forward for build/pipeline changes. This file still tracks the
+overall snapshot and phase.
+**Next:** Phase 3 — seed real traffic from Reddit to the live sites (see `roadmap.md`), watch
+conversion, log real numbers in `metrics-log.md` once there's a first week of them, and get Ironseam
+to its first 3 qualifying Associates sales (the account stays provisional until then).
 
 ## FOCUS (2026-07-23): TELEGRAM PIPELINE BUILT, NEEDS WEBHOOK EXPOSURE DECISION
 Both build steps from the 07-20 focus are now done:
