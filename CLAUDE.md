@@ -56,6 +56,33 @@ deployed straight to Vercel via CLI from the folder. `pipeline/build-site-agent-
 - `01 Daily Logs/` — the build journey.
 
 ## Pending — specs for Claude Code to implement
+- [x] **Niche-judgment reasoning was never captured — added capture + an LLM-as-judge eval.**
+  Implemented 2026-09-19. Audited how Gemini's approve/reject niche judgments are recorded: they
+  weren't, at all. An approval only ever produced a Telegram message (niche + angle, no reasoning);
+  a rejection produced nothing anywhere — not a log, not a file, not even a Telegram message. There
+  was no way to check whether the judgment step was doing its real job (per `README.md`: inferring a
+  monetisable angle that isn't obvious from keywords alone) versus just restating that the post's
+  subreddit is generally about a product — which is what the cheap pre-filter (`scoring-rss.js`)
+  already does before Gemini ever sees the post. Worth noting: the live prompt itself currently
+  invites exactly that shortcut — it tells Gemini to "use the SUBREDDIT as a strong hint" and "infer
+  products even if the post is just a photo", "lean towards YES" — so once real reasoning
+  accumulates it may well score low under the new eval; that's a separate, larger prompt-design call
+  for Luke to make, not changed here.
+  Fixes: `scraper/monetisable-check-gemini.js` (+ the DEBUG variant) now requires Gemini to return a
+  one-line `reasoning` field naming the specific non-obvious angle (or why there isn't one), and
+  every judgment — approved or rejected — is appended as JSONL to `niche-judgments.jsonl`
+  (`fs.appendFileSync`, try/catch-guarded in case this n8n install's Code node sandbox blocks
+  `require('fs')`). New `scraper/eval-niche-judgments.js`: LLM-as-judge script, reads that log,
+  scores each judgment 1-5 on genuine-angle-vs-restatement, prints the average and flags every
+  judgment scoring 3 or below with its post/decision/reasoning. `--self-test` runs it against a
+  fixed mock judge (no API key/network) to verify the harness itself; real scoring needs
+  `GEMINI_API_KEY` and, obviously, real logged judgments.
+  **No real judgments-with-reasoning existed to run this against** — reasoning capture is new as of
+  this change, so there is no historical data to score. Confirmed the self-test path works
+  end-to-end (3 fixture records, avg 3.33/5, correctly flagged the generic "HomeImprovement is about
+  home stuff" one as low-scoring) — that's a plumbing check only, not a real result. Re-run
+  `eval-niche-judgments.js` once the pipeline has been live again for a while and
+  `niche-judgments.jsonl` has real entries.
 - [x] **`/ship` reports the wrong URL — fix the Telegram wiring, not the site.** Implemented and
   verified live 2026-07-26. `Ship: make command` now reads `staticData.currentUrl` (the known-clean
   alias saved from the original `/build`, e.g. `https://ironseam.vercel.app`) and passes it through;

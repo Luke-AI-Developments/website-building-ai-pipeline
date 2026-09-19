@@ -163,6 +163,29 @@ Notes:
 - It "fails open" — if Gemini errors, the post still passes (so you never lose finds to an API blip).
 - If your n8n's Code node can't do `this.helpers.httpRequest`, use a separate HTTP Request node to
   the same Gemini endpoint instead — tell me and I'll give that variant.
+- **Every judgment (approved and rejected) is logged with its one-line reasoning** to
+  `niche-judgments.jsonl` (`LOG_PATH` at the top of the file — set it to an absolute path if your
+  n8n host's working directory isn't where you want the log). Before this, only approvals ever left
+  a trace (a Telegram message, no reasoning) and rejections left nothing — there was no way to check
+  whether the judgment was doing its real job (spotting a non-obvious angle) versus just restating
+  that the post/subreddit mentions a product. `eval-niche-judgments.js` reads this same file. If your
+  n8n Code node sandbox blocks `require('fs')`, judging still works, it just silently isn't logged —
+  check the file is actually growing after a live run.
+
+## Evaluating judgment quality (`eval-niche-judgments.js`)
+
+LLM-as-judge script that reads `niche-judgments.jsonl` and scores each logged judgment 1-5 on
+whether its reasoning reflects a genuine, specific, non-obvious angle — vs. just restating that the
+post/subreddit is about a product (which is the cheap pre-filter's job, not this step's).
+
+```
+GEMINI_API_KEY=... node scraper/eval-niche-judgments.js
+node scraper/eval-niche-judgments.js --self-test   # no key/network — checks the script itself, not quality
+```
+
+Prints an average score and flags every judgment scoring 3 or below, with the post, decision, and
+stated reasoning, so you can see exactly which approvals/rejections were surface-level. Re-run it
+periodically as `niche-judgments.jsonl` grows.
 
 ---
 

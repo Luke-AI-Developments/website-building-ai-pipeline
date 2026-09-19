@@ -19,7 +19,11 @@ for (const item of items) {
     `or services. Use the SUBREDDIT as a strong hint: hobby/interest/product subs almost always map ` +
     `to a monetisable niche — infer the products even if the post is just a photo or a question. ` +
     `Lean towards YES. Only answer false for pure entertainment, jokes, drama, politics or venting. ` +
-    `Return ONLY JSON: {"monetizable": true|false, "niche": "short", "angle": "what to sell"}. ` +
+    `Also give your reasoning: name the SPECIFIC non-obvious angle you inferred — not just "this ` +
+    `post/subreddit is about a product". If the only thing you can say is that the subreddit's topic ` +
+    `is generally buyable, that is NOT a real angle and should push you towards false. ` +
+    `Return ONLY JSON: {"monetizable": true|false, "niche": "short", "angle": "what to sell", ` +
+    `"reasoning": "one sentence: the specific non-obvious angle, or why there isn't one"}. ` +
     `Subreddit: r/${sub}. Title: "${title}"`;
 
   let verdictText = '';

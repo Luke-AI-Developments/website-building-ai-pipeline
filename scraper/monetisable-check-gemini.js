@@ -15,6 +15,22 @@ const URL        = `https://generativelanguage.googleapis.com/v1beta/models/${MO
 const MAX_ALERTS = 10;                          // cap messages per run
 const THROTTLE_MS = 6000;                       // 6s gap → stays under free-tier per-minute limit
 
+// Every judgment (approved AND rejected) is appended here as JSONL, reasoning included.
+// Before this, only approvals ever left a trace (a Telegram message with no reasoning) and
+// rejections left none at all — there was no record to check the judgment quality against.
+// Set to an absolute path on your n8n host if the working directory isn't writable/expected.
+// eval-niche-judgments.js reads this same file. Wrapped in try/catch: if this n8n install's
+// Code node sandbox blocks `require('fs')`, judging still works, it just isn't logged.
+const LOG_PATH = 'niche-judgments.jsonl';
+
+function logJudgment(record) {
+  try {
+    require('fs').appendFileSync(LOG_PATH, JSON.stringify(record) + '\n');
+  } catch (e) {
+    // Sandbox likely blocks fs — swallow so a logging failure never breaks the pipeline.
+  }
+}
+
 const out = [];
 
 for (const item of items) {
@@ -31,7 +47,11 @@ for (const item of items) {
     `monetisable niche — infer the products even if the post itself is just a photo or a question. ` +
     `Lean towards YES. Only answer false for pure entertainment, jokes, drama, politics, or personal ` +
     `venting with genuinely nothing to recommend. ` +
-    `Return ONLY JSON: {"monetizable": true|false, "niche": "short niche name", "angle": "what you'd recommend or sell"}. ` +
+    `Also give your reasoning: name the SPECIFIC non-obvious angle you inferred — not just "this ` +
+    `post/subreddit is about a product". If the only thing you can say is that the subreddit's topic ` +
+    `is generally buyable, that is NOT a real angle and should push you towards false. ` +
+    `Return ONLY JSON: {"monetizable": true|false, "niche": "short niche name", "angle": "what you'd recommend or sell", ` +
+    `"reasoning": "one sentence: the specific non-obvious angle, or why there isn't one"}. ` +
     `Subreddit: r/${sub}. Title: "${title}"`;
 
   // Fail CLOSED (drop) when unsure. Retry transient 429/500/503 (server overload).
@@ -63,6 +83,21 @@ for (const item of items) {
       v = { monetizable: false };
       break;  // non-retryable or out of attempts
     }
+  }
+
+  // Only log real verdicts (reasoning present) — a fail-closed default from an API/parse
+  // error isn't a judgment, it's an outage, and would just be noise in the eval data.
+  if (v.reasoning) {
+    logJudgment({
+      timestamp: new Date().toISOString(),
+      subreddit: sub,
+      title,
+      url: item.json.url || '',
+      monetizable: !!v.monetizable,
+      niche: v.niche || '',
+      angle: v.angle || '',
+      reasoning: v.reasoning,
+    });
   }
 
   if (v.monetizable) {

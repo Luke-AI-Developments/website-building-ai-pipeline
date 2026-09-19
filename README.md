@@ -80,6 +80,21 @@ deployed end to end, monetising through a live, approved Amazon Associates accou
   content quality gets a human review before any site goes live, and some fixes (a visual redesign,
   working affiliate links) landed after the first few sites shipped, so not every live site has every
   improvement yet. That gap is tracked, not hidden.
+- **Niche-judgment quality was never actually checked, because it was never recorded.** The
+  approve/reject calls Gemini makes in `scraper/monetisable-check-gemini.js` — the step that's
+  supposed to spot a monetisable angle that *isn't* obvious from keywords alone, not just re-detect
+  "this mentions a product" — left no trace beyond a Telegram alert (niche + angle, no reasoning) on
+  approval and *nothing at all* on rejection. There was no way to tell whether it was doing that real
+  job or quietly doing the cheap pre-filter's job over again. Fixed 2026-09-19: the judgment step now
+  logs every decision with a one-line reasoning field to `scraper/niche-judgments.jsonl`, and
+  `scraper/eval-niche-judgments.js` (LLM-as-judge) scores each one 1-5 on genuine-angle-vs-restatement
+  and flags the low scorers — see `scraper/SETUP.md`. Since reasoning capture is brand new, **there is
+  no historical data to report an average score on yet**; the eval has only been run in
+  `--self-test` mode (a fixed mock judge against 3 fixture examples) to confirm the script itself
+  works, which is a plumbing check, not a quality result. Worth flagging while it's fresh: the live
+  judgment prompt currently tells Gemini to treat the subreddit's general topic as a strong buy
+  signal and "lean towards YES" — exactly the shortcut this eval is designed to catch — so real
+  scores may come in low until that prompt is tightened.
 
 ## What I learned
 
